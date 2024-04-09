@@ -72,100 +72,70 @@ app.post('/createuser', async (req, res) => {
   }
 });
 
-// Get user data
-app.get('/retrieveuser/:uid', (req, res) => {
+// Get user information
+app.get('/retrieveuser/:uid', async (req, res) => {
   const uid = req.params.uid;
-  console.log(req.params.uid);
 
-  if (!uid) {
-    return res.status(400).json({ error: 'uid parameter is missing' });
-  }
-
-  const query = `
-      SELECT 
-          users.*, 
-          dataset.label AS dataset_label, 
+  let client;
+  try {
+    client = await pool.connect();
+    await client.query('BEGIN');
+    // res.status(200).json(`Hello, I am ${uid}`);
+    if (!uid) {
+      return res.status(400).json({ error: 'uid parameter is missing' });
+    }
+    const query = `
+      SELECT
+          users.*,
+          dataset.label AS dataset_label,
           dataset.unit AS dataset_unit,
           entry.measurement AS entry_measurement,
           entry.timestamp AS entry_timestamp
-      FROM 
-          users 
-      LEFT JOIN 
+      FROM
+          users
+      LEFT JOIN
           dataset ON users.id = dataset.userid
-      LEFT JOIN 
+      LEFT JOIN
           entry ON dataset.id = entry.datasetid
-      WHERE 
-          users.firebase_uid = '${uid}'
-  `;
-  connection.query(query, (err, results) => {
-    const userData = {
-      id: results[0].id,
-      email: results[0].email,
-      dob: results[0].dob,
-      height: results[0].height,
-      displayname: results[0].displayname,
-      firebase_uid: results[0].firebase_uid,
-      relatedData: results.map((row) => ({
-        dataset_label: row.dataset_label,
-        dataset_unit: row.dataset_unit,
-        entry_measurement: row.entry_measurement,
-        entry_timestamp: row.entry_timestamp,
-      })),
-    };
-    res.status(200).json(userData);
-    // if (err) {
-    //   console.error('Error fetching user data:', err);
-    //   res.status(500).json({ error: 'Internal server error' });
-    // } else if (results.length === 0) {
-    //   res.status(404).json({ error: 'User not found' });
-    // } else {
-    //   const userData = {
-    //     id: results[0].id,
-    //     email: results[0].email,
-    //     dob: results[0].dob,
-    //     height: results[0].height,
-    //     displayname: results[0].displayname,
-    //     firebase_uid: results[0].firebase_uid,
-    //     relatedData: results.map((row) => ({
-    //       dataset_label: row.dataset_label,
-    //       dataset_unit: row.dataset_unit,
-    //       entry_measurement: row.entry_measurement,
-    //       entry_timestamp: row.entry_timestamp,
-    //     })),
-    //   };
-    //   res.status(200).json(userData);
-    // }
-  });
-});
-
-// Update user data
-app.patch('/userdata', async (req, res) => {
-  const userId = req.params.id;
-  const { name } = req.body;
-
-  try {
-    const client = await pool.connect();
-    const result = await client.query(
-      'UPDATE users SET name = $1 WHERE id = $2 RETURNING *',
-      [name, userId]
-    );
-    const updatedUser = result.rows[0];
-    client.release();
-
-    if (updatedUser) {
-      res.json(updatedUser);
-    } else {
-      res.status(404).send('User not found');
-    }
+      WHERE
+          users.firebase_uid = $1`;
+    client.query(query, [uid], (err, results) => {
+      if (err) {
+        console.error('Error fetching user data:', err);
+        return res.status(500).json({ error: 'Internal server error' });
+      }
+      if (results.rows.length === 0) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+      const userData = {
+        id: results.rows[0].id,
+        email: results.rows[0].email,
+        dob: results.rows[0].dob,
+        height: results.rows[0].height,
+        displayname: results.rows[0].displayname,
+        firebase_uid: results.rows[0].firebase_uid,
+        relatedData: results.rows.map((row) => ({
+          dataset_label: row.dataset_label,
+          dataset_unit: row.dataset_unit,
+          entry_measurement: row.entry_measurement,
+          entry_timestamp: row.entry_timestamp,
+        })),
+      };
+      res.status(200).json(userData);
+    });
   } catch (err) {
-    console.error('Error updating user', err);
-    res.status(500).send('Internal Server Error');
+    console.error('Error:', err);
+    if (client) {
+      await client.query('ROLLBACK');
+      client.release();
+    }
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
 // Add fitness entry
 app.post('/adddata', async (req, res) => {
-  console.log(req.body); // Test
+  // console.log(req.body); // Test
   const { userId, label, unit, measurement, timestamp } = req.body;
 
   try {

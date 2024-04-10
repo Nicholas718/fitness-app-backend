@@ -135,26 +135,55 @@ app.get('/retrieveuser/:uid', async (req, res) => {
 
 // Add fitness entry
 app.post('/adddata', async (req, res) => {
-  // console.log(req.body); // Test
-  const { userId, label, unit, measurement, timestamp } = req.body;
+  const { uid, measurement, timestamp } = req.body;
+  const label = 'weight';
+  const unit = 'kg';
+
+  let client;
 
   try {
-    const datasetResult = await pool.query(
+    client = await pool.connect();
+    await client.query('BEGIN');
+
+    const userQuery = await client.query(
+      'SELECT id FROM users WHERE firebase_uid = $1',
+      [uid]
+    );
+
+    if (userQuery.rows.length === 0) {
+      await client.query('ROLLBACK');
+      client.release();
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const userId = userQuery.rows[0].id;
+
+    const datasetResult = await client.query(
       'INSERT INTO dataset (userid, label, unit) VALUES ($1, $2, $3) RETURNING id',
       [userId, label, unit]
     );
 
     const datasetId = datasetResult.rows[0].id;
 
-    await pool.query(
+    await client.query(
       'INSERT INTO entry (datasetid, measurement, timestamp) VALUES ($1, $2, $3)',
       [datasetId, measurement, timestamp]
     );
 
+    await client.query('COMMIT');
+
     res.status(201).json({ message: 'Data added successfully' });
-  } catch (error) {
-    console.error('Error adding data:', error);
-    res.status(500).send('Internal server error');
+  } catch (err) {
+    console.error('Error:', err);
+    if (client) {
+      await client.query('ROLLBACK');
+      client.release();
+    }
+    res.status(500).json({ error: 'Internal server error' });
+  } finally {
+    if (client) {
+      client.release();
+    }
   }
 });
 

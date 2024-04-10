@@ -134,11 +134,11 @@ app.get('/retrieveuser/:uid', async (req, res) => {
 });
 
 // Add fitness entry
+// Add fitness entry
 app.post('/adddata', async (req, res) => {
   const { uid, measurement, timestamp } = req.body;
   const label = 'weight';
   const unit = 'kg';
-
   let client;
 
   try {
@@ -180,10 +180,6 @@ app.post('/adddata', async (req, res) => {
       client.release();
     }
     res.status(500).json({ error: 'Internal server error' });
-  } finally {
-    if (client) {
-      client.release();
-    }
   }
 });
 

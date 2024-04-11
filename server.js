@@ -134,11 +134,10 @@ app.get('/retrieveuser/:uid', async (req, res) => {
 });
 
 // Add fitness entry
-// Add fitness entry
 app.post('/adddata', async (req, res) => {
-  const { uid, measurement, timestamp } = req.body;
-  const label = 'weight';
-  const unit = 'kg';
+  const { uid, measurement, timestamp, dataset } = req.body;
+  const { label, unit } = dataset;
+
   let client;
 
   try {

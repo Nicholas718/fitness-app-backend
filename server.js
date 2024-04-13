@@ -157,12 +157,23 @@ app.post('/adddata', async (req, res) => {
 
     const userId = userQuery.rows[0].id;
 
-    const datasetResult = await client.query(
-      'INSERT INTO dataset (userid, label, unit) VALUES ($1, $2, $3) RETURNING id',
+    const datasetQuery = await client.query(
+      'SELECT id FROM dataset WHERE userid = $1 AND label = $2 AND unit = $3',
       [userId, label, unit]
     );
 
-    const datasetId = datasetResult.rows[0].id;
+    let datasetId;
+
+    if (datasetQuery.rows.length > 0) {
+      datasetId = datasetQuery.rows[0].id;
+    } else {
+      const datasetResult = await client.query(
+        'INSERT INTO dataset (userid, label, unit) VALUES ($1, $2, $3) RETURNING id',
+        [userId, label, unit]
+      );
+
+      datasetId = datasetResult.rows[0].id;
+    }
 
     await client.query(
       'INSERT INTO entry (datasetid, measurement, timestamp) VALUES ($1, $2, $3)',

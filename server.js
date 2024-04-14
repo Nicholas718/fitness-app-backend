@@ -109,7 +109,7 @@ app.get('/retrieveuser/:uid', async (req, res) => {
         uid: rows[0].firebase_uid,
       },
       datasets: rows.reduce((acc, row) => {
-        const datasetExists = acc.find((d) => d.id === row.dataset_id);
+        const datasetExists = acc.find((data) => data.id === row.dataset_id);
         if (!datasetExists) {
           acc.push({
             id: row.dataset_id,
@@ -118,7 +118,9 @@ app.get('/retrieveuser/:uid', async (req, res) => {
             entries: [],
           });
         }
-        const datasetIndex = acc.findIndex((d) => d.id === row.dataset_id);
+        const datasetIndex = acc.findIndex(
+          (data) => data.id === row.dataset_id
+        );
         acc[datasetIndex].entries.push({
           measurement: row.entry_measurement,
           timestamp: row.entry_timestamp,

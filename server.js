@@ -2,10 +2,13 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const { Pool } = require('pg');
 const cors = require('cors');
+
 const app = express();
 const port = 5050;
+
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
+
 // Database connection
 const pool = new Pool({
   user: 'postgres',
@@ -14,6 +17,7 @@ const pool = new Pool({
   password: 'FitnessApp', //Password for your Database
   port: 5432,
 });
+
 app.use(
   cors({
     origin: 'http://localhost:3000',
@@ -21,37 +25,42 @@ app.use(
     allowedHeaders: ['Content-Type', 'Authorization'],
   })
 );
+
 // Routes
-// Create new user (Completed)
+
+// Create new user
 app.post('/createuser', async (req, res) => {
   const { user, dataSet } = req.body;
   const { displayName, email, dob, height, uid } = user;
   const { label, unit, entries } = dataSet;
-  // const { measurement, timeStamp } = entry;
   const [{ measurement, timeStamp }] = entries;
-  // console.log(measurement, timeStamp);
   console.log(entries);
 
   let client;
   try {
     client = await pool.connect();
     await client.query('BEGIN');
+
     const userResult = await client.query(
       'INSERT INTO users (displayname, email, dob, height, firebase_uid) VALUES ($1, $2, $3, $4, $5) RETURNING id',
       [displayName, email, dob, height, uid]
     );
     const userId = userResult.rows[0].id;
+
     const dataSet = await client.query(
       'INSERT INTO dataset (userid, label, unit) VALUES ($1, $2, $3) RETURNING id',
       [userId, label, unit]
     );
     const datasetId = dataSet.rows[0].id;
+
     await client.query(
       'INSERT INTO entry (datasetid, measurement, timestamp) VALUES ($1, $2, $3)',
       [datasetId, Number(measurement), timeStamp]
     );
+
     await client.query('COMMIT');
     client.release();
+
     res
       .status(201)
       .json({ message: 'User and related data inserted successfully' });
@@ -148,6 +157,7 @@ app.post('/adddata', async (req, res) => {
   try {
     client = await pool.connect();
     await client.query('BEGIN');
+
     const userQuery = await client.query(
       'SELECT id FROM users WHERE firebase_uid = $1',
       [uid]
@@ -182,6 +192,7 @@ app.post('/adddata', async (req, res) => {
       'INSERT INTO entry (datasetid, measurement, timestamp) VALUES ($1, $2, $3)',
       [datasetId, measurement, timestamp]
     );
+
     await client.query('COMMIT');
     res.status(201).json({ message: 'Data added successfully' });
   } catch (err) {
@@ -195,9 +206,13 @@ app.post('/adddata', async (req, res) => {
 });
 
 // Add custom fitness dataSet (To be completed)
-app.post('/users/:userId/fitness/custom', (req, res) => {});
+app.post('/users/:userId/fitness/custom', (req, res) => {
+  // To be completed
+});
+
 // Start server
 app.listen(port, () => {
   console.log(`Server is listening on port ${port}`);
 });
+
 module.exports = app;

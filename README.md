@@ -27,11 +27,11 @@ Make sure to set up the following environment variables:
 
 - PORT: Port number for the Express server.
 - // Database connection
-  user: '',
-  host: '',
-  database: '',
-  password: '',
-  port: ,
+  user: 'your_username',
+  host: 'your_host',
+  database: 'your_database',
+  password: 'your_password',
+  port: 'your_port',
 
 **API Endpoints:**
 **Authentication:**

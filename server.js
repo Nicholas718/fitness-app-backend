@@ -75,6 +75,7 @@ app.post('/createuser', async (req, res) => {
 });
 
 // Get user information
+// Get user information
 app.get('/retrieveuser/:uid', async (req, res) => {
   const uid = req.params.uid;
   let client;
@@ -141,11 +142,11 @@ app.get('/retrieveuser/:uid', async (req, res) => {
     res.status(200).json(userData);
   } catch (err) {
     console.error('Error:', err);
-    if (client) {
-      await client.query('ROLLBACK');
-      client.release();
-    }
     res.status(500).json({ error: 'Internal server error' });
+  } finally {
+    if (client) {
+      await client.release();
+    }
   }
 });
 

@@ -11,7 +11,7 @@ This project is the backend for a health tracking app designed to help users log
 **Prerequisites:**
 Before running the project, make sure you have the following installed:
 
-- Node.js
+- npm (Node.js Package Manager)
 - PostgreSQL
 
 **Installation:**
